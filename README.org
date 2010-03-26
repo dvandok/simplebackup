@@ -1,0 +1,28 @@
+* Algorithm for backup maintenance
+
+  Nearly every day I make a backup, which is a verbatim copy of (a
+  part) of my system in a subdirectory whose name is today's date,
+  like 2010-01-13
+
+  This accumulates over time so I need to judiciously clean up old
+  backups to prevent the storage space to fill up.
+
+  The general strategy is to keep more of the recent backups, and
+  fewer of the older ones; the average time between retained backups
+  should increase as you look back in time. A simple scheme could be
+  to keep all daily backups of the last seven days, one backup per
+  week less than a month old, and one backup per month less than a
+  year old. These will have to be discreet points in time, i.e. not depend
+  on the current day of the week. So let's say we keep the first backup of
+  every week (Mo-Su) for the last 4 weeks and the first backup of every month for
+  the last 6 months.
+
+  Algorithm: 
+  1. sort the existing backups by time, most recent first. 
+  2. Take the next backup date of the list
+  3. is it less than 7 days old? Yes: flag as 'keep' (mark the week) and go back to step 2.
+  4. If it is less than 30 days old, then if this is the first backup
+     of the week (check the mark) it is in (starting on Monday), flag
+     it as keep and go to step 2. Else discard
+  5. If it is the first backup of the month keep it
+     
