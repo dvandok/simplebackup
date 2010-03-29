@@ -1,9 +1,24 @@
 #!/usr/bin/perl -w
 
-use POSIX;
-
 use strict;
 use warnings;
+
+use POSIX;
+use Getopt::Long;
+
+my $target = "home";
+my $host = "camilla";
+
+GetOptions("target|l=s" => \$target,
+	   "host|h=s" => \$host) or die "Could not parse options.";
+
+my %locations =
+    (
+     "home" => "/media/medion_big/backup",
+     "work" => "/media/backup-nik/bkp",
+     "test" => "./test"
+    );
+
 
 # backups to keep:
 
@@ -11,8 +26,7 @@ use warnings;
 # first backup of the week not older than 30 days
 # first backup of the month
 
-my $backupdir = "/media/backup-nik/bkp/camilla";
-$backupdir = "./test";
+my $backupdir = "$locations{$target}/$host";
 
 opendir(DIR,$backupdir) or die "couldn't open $backupdir";
 
@@ -45,8 +59,8 @@ my $current_date = 0;
 use constant WEEKSECS => 7 * 24 * 60 * 60;
 use constant MONTHSECS => 30 * 24 * 60 * 60;
 
-my @keeplist = ();
-
+my @keeplist = (); # will keep these
+my @toss = (); # won't keep thise
 my $time;
 
 my $keepmonth = 0;
@@ -96,6 +110,7 @@ while ($nextdate = shift @dates) {
 	    delete @week[0..3];
 	    $month = "$y-$m";
 	}
+	if (defined $week[($d-1)/7]) { push @toss, $week[($d-1)/7]; }
 	$week[($d-1)/7] = $nextdate;
 	next;
     } else {
@@ -114,6 +129,7 @@ print STDERR "end of first month\n";
 while ($nextdate = shift @dates) {
     ($time, $y, $m, $d) = date2time($nextdate);
     if ("$y-$m" eq $month) {
+	if ($keepmonth) { push @toss, $keepmonth; }
 	$keepmonth = $nextdate;
     } else {
 	push @keeplist, $keepmonth if ($keepmonth);
@@ -128,6 +144,8 @@ push @keeplist, $keepmonth;
 
 $,="\n";
 
+print "Keep these:\n";
 print sort @keeplist; print  "\n";
 
-
+print "\nToss these:\n";
+print sort @toss; print "\n";
