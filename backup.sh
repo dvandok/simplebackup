@@ -87,7 +87,7 @@ if [ "$host" = camilla ]; then
     volume=mac_camilla
     backupdir=$targetvolume/${volume}
     srcdir=/media/InternalHD/Users/dennis
-    excludefile=${HOME}/bin/maccamilla-excludes
+    excludefile=/usr/local/share/backup/maccamilla-excludes
     rsyncflags="-rlt -P -v --delete --exclude-from=$excludefile"
     cd $srcdir || { echo 'volume InternalHD not mounted' ; exit 1 ; }
 
