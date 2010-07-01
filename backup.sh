@@ -61,6 +61,11 @@ cd $backupdir || { echo "target volume $targetvolume not mounted" ; exit 1 ; }
 
 rsync $rsyncflags $rhost/ $backupdir/
 
+if [ $? -ne 0 ]; then
+    echo "rsync failure? Exiting"
+    exit 1
+fi
+
 # the shared system between mac and linux
 #targetdir=$targetvolume/untitled/dennis/
 #sourcedir=/shared/dennis/
@@ -70,9 +75,11 @@ rsync $rsyncflags $rhost/ $backupdir/
 
 # time-machine style backup
 today=`date '+%Y-%m-%d'`
-if [ ! -d $targetvolume/$host/$today ]; then
-    cp -al $targetvolume/$host/current $targetvolume/$host/$today
+if [ -d $targetvolume/$host/$today ]; then
+    rm -rf $targetvolume/$host/$today
 fi
+
+cp -al $targetvolume/$host/current/ $targetvolume/$host/$today/
 
 # legacy nonsense.
 
