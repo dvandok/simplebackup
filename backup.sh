@@ -45,7 +45,7 @@ case $target in
 	targetvolume=/media/medion_big/backup
 	;;
     work)
-	targetvolume=/media/backup-nik/backup
+	targetvolume=/external/backup
 	;;
     *)
 	echo "Unknown target volume '$target'"
