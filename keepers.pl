@@ -5,17 +5,23 @@ use warnings;
 
 use POSIX;
 use Getopt::Long;
+use File::Copy;
 
 my $target = "home";
 my $host = "camilla";
 
+my $dryrun = 0;
+my $verbose = 0;
+
 GetOptions("target|l=s" => \$target,
-	   "host|h=s" => \$host) or die "Could not parse options.";
+	   "host|h=s" => \$host,
+	   "dry-run" => \$dryrun,
+	   "verbose" => \$verbose) or die "Could not parse options.";
 
 my %locations =
     (
      "home" => "/media/medion_big/backup",
-     "work" => "/media/backup-nik/bkp",
+     "work" => "/external/bkp",
      "test" => "./test"
     );
 
@@ -47,7 +53,7 @@ my @dates = sort { $b cmp $a } grep {
 sub date2time($) {
     my $date = shift;
     my ($y, $m, $d) = ($date =~ /([[:digit:]]{4})-([[:digit:]]{2})-([[:digit:]]{2})$/);
-    print STDERR "year: $y, month: $m, day: $d\n";
+    print STDERR "year: $y, month: $m, day: $d\n" if $verbose;
     return (mktime(0, 0, 0, $d -1 , $m -1 , $y -1900 ), $y, $m, $d);
 }
 
@@ -69,7 +75,7 @@ my ($y,$m,$d);
 my $firstdate = shift @dates;
 my $firsttime = (date2time $firstdate)[0]; # take the first element in the array
 
-print STDERR $firsttime . "\n";
+print STDERR $firsttime . "\n" if $verbose;
 
 push @keeplist, $firstdate;
 
@@ -89,7 +95,7 @@ while ($nextdate = shift @dates) {
     }
 }
 
-print STDERR "end of first week\n";
+print STDERR "end of first week\n" if $verbose;
 
 my $month = "$y-$m";
 
@@ -103,7 +109,7 @@ while ($nextdate = shift @dates) {
 	if ("$y-$m" ne $month) {
 	    # deal with last months effects
 	    for (@week) {
-		print STDERR "keep $_\n";
+		print STDERR "keep $_\n" if $verbose;
 		next if not defined $_;
 		push @keeplist, $_;
 	    }
@@ -123,7 +129,7 @@ for (@week) {
     push @keeplist, $_;
 }
 
-print STDERR "end of first month\n";
+print STDERR "end of first month\n" if $verbose;
 
 # last loop; everything that is older than a month
 while ($nextdate = shift @dates) {
@@ -144,8 +150,19 @@ push @keeplist, $keepmonth;
 
 $,="\n";
 
-print "Keep these:\n";
-print sort @keeplist; print  "\n";
+if ($verbose) {
+    print "Keep these:\n";
+    print sort @keeplist; print  "\n";
+    print "\nToss these:\n";
+    print sort @toss; print "\n";
+}
 
-print "\nToss these:\n";
-print sort @toss; print "\n";
+# if not in dryrun mode, rename the tossers
+for (@toss) {
+    if (! $dryrun ) {
+	move("$backupdir/$_", "$backupdir/${_}.toss");
+	print "toss $backupdir/${_}.toss\n";
+    } else {
+	print "(would rename $backupdir/$_ to $backupdir/${_}.toss)\n";
+    }
+}
