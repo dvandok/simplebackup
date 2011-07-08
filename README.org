@@ -1,28 +1,54 @@
-* Algorithm for backup maintenance
+* Simple incremental backup
 
-  Nearly every day I make a backup, which is a verbatim copy of (a
-  part) of my system in a subdirectory whose name is today's date,
-  like 2010-01-13
+  This is a very simple space-preserving incremental backup script
+  inspired by the book [[http://oreilly.com/catalog/9780596004613][Linux Server Hacks]] (Ch.03). The gist of it is
+  that time-based backups are done by hardlinking files, which reduces
+  the space consumption (especially for files that do not change).
 
-  This accumulates over time so I need to judiciously clean up old
-  backups to prevent the storage space to fill up.
+  I use this every day to backup my laptop to an external USB harddisk
+  at work, and once a week I do the same thing at home. It's also capable of
+  doing the same thing for a remote host (i.e. backup the remote host to
+  a local disk, not the other way round!) which I use to backup my home
+  PC to the same external disk that I use for my laptop.
 
-  The general strategy is to keep more of the recent backups, and
-  fewer of the older ones; the average time between retained backups
-  should increase as you look back in time. A simple scheme could be
-  to keep all daily backups of the last seven days, one backup per
-  week less than a month old, and one backup per month less than a
-  year old. These will have to be discreet points in time, i.e. not depend
-  on the current day of the week. So let's say we keep the first backup of
-  every week (Mo-Su) for the last 4 weeks and the first backup of every month for
-  the last 6 months.
+  The included example configuration and 'excludes' files are real. But the
+  scripts have been modified for this first public release to be a little
+  bit more clean in the way configuration is done. Basically this is now
+  in the file /etc/simplebackup.conf, which is sourced from the backup
+  script as bash source.
 
-  Algorithm: 
-  1. sort the existing backups by time, most recent first. 
-  2. Take the next backup date of the list
-  3. is it less than 7 days old? Yes: flag as 'keep' (mark the week) and go back to step 2.
-  4. If it is less than 30 days old, then if this is the first backup
-     of the week (check the mark) it is in (starting on Monday), flag
-     it as keep and go to step 2. Else discard
-  5. If it is the first backup of the month keep it
-     
+  The accompanying keepers.pl script is 'my first Perl program' (maybe
+  'my last Perl program') to flag certain backups for deletion. It
+  uses the same configuration file but it requires quotes around the
+  values (in the future I will probably port the backup script to Perl
+  as well and get rid of this ugly syntax constraint).
+
+
+** Algorithm for backup maintenance
+
+   Nearly every day I make a backup, which is a verbatim copy of (a
+   part) of my system in a subdirectory whose name is today's date,
+   like 2010-01-13
+
+   This accumulates over time so I need to judiciously clean up old
+   backups to prevent the storage space to fill up.
+
+   The general strategy is to keep more of the recent backups, and
+   fewer of the older ones; the average time between retained backups
+   should increase as you look back in time. A simple scheme could be
+   to keep all daily backups of the last seven days, one backup per
+   week less than a month old, and one backup per month less than a
+   year old. These will have to be discreet points in time, i.e. not depend
+   on the current day of the week. So let's say we keep the first backup of
+   every week (Mo-Su) for the last 4 weeks and the first backup of every month for
+   the last 6 months.
+
+   Algorithm: 
+   1. sort the existing backups by time, most recent first. 
+   2. Take the next backup date of the list
+   3. is it less than 7 days old? Yes: flag as 'keep' (mark the week) and go back to step 2.
+   4. If it is less than 30 days old, then if this is the first backup
+      of the week (check the mark) it is in (starting on Monday), flag
+      it as keep and go to step 2. Else discard
+   5. If it is the first backup of the month keep it
+      
