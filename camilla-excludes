@@ -1,0 +1,13 @@
++ /private/
++ /private/home/
++ /private/home/dennis/
+- /private/home/dennis/.gvfs/
++ /private/home/dennis/**
++ /etc/
++ /etc/**
++ /var/
++ /var/backups/
++ /var/backups/**
++ /data/
++ /data/**
+- *

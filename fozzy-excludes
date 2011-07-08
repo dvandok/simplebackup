@@ -1,0 +1,8 @@
+- /dev
+- /proc
+- /media
+- /sys
+- /scratch
+- /data
+- .gvfs/
++ *
