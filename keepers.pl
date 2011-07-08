@@ -7,23 +7,40 @@ use POSIX;
 use Getopt::Long;
 use File::Copy;
 
-my $target = "home";
-my $host = "camilla";
+# read the configuration file
+my $configfile= "/etc/simplebackup.conf";
+
+# This is probably the ugliest way to read a config file.
+my %conf;
+open(CONF, $configfile) or die "couldn't open $configfile";
+while (<CONF>) {
+  if (/\s*(\w+)=(.*)/) {
+    eval "\$conf{\"$1\"} = $2";
+  }
+}
+close(CONF);
+
+defined $conf{"host"} or die "Missing host variable in $configfile";
+defined $conf{"location"} or die "Missing location variable in $configfile";
+
 
 my $dryrun = 0;
 my $verbose = 0;
+my $host;
+my $location;
 
-GetOptions("target|l=s" => \$target,
+GetOptions("location|l=s" => \$location,
 	   "host|h=s" => \$host,
 	   "dry-run" => \$dryrun,
 	   "verbose" => \$verbose) or die "Could not parse options.";
 
-my %locations =
-    (
-     "home" => "/media/medion_big/backup",
-     "work" => "/external/bkp",
-     "test" => "./test"
-    );
+if (!defined $host) {
+  $host = $conf{"host"};
+}
+
+if (!defined $location) {
+  $location = $conf{"location"};
+}
 
 
 # backups to keep:
@@ -32,23 +49,13 @@ my %locations =
 # first backup of the week not older than 30 days
 # first backup of the month
 
-my $backupdir = "$locations{$target}/$host";
+my $backupdir = $conf{"${location}_volume"} . "/$host";
 
 opendir(DIR,$backupdir) or die "couldn't open $backupdir";
 
 my @dates = sort { $b cmp $a } grep {
     /^[[:digit:]]{4}-[[:digit:]]{2}-[[:digit:]]{2}$/ && -d "$backupdir/$_"
 } readdir(DIR); closedir DIR;
-
-#@dates = sort { $b cmp $a } @dates;
-
-# dirty but lexical sort will do the trick
-#print sort(@dates);
-
-# convert each date to a timestamp?
-
-# relate the backups to most recent one.
-#$time = str2time("2010-01-02");
 
 sub date2time($) {
     my $date = shift;
@@ -57,7 +64,6 @@ sub date2time($) {
     return (mktime(0, 0, 0, $d -1 , $m -1 , $y -1900 ), $y, $m, $d);
 }
 
-#print localtime($time) . "\n";
 
 my $current_date = 0;
 
