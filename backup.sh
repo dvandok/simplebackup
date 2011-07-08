@@ -6,14 +6,16 @@ PATH=/bin:/usr/bin:/sbin:/usr/sbin
 # -h <host> backup the remote host
 # -l <location> backup to volume, either 'home' or 'work'
 
-# by default, backup the current host
-host=camilla
+configfile=/etc/simplebackup.conf
 
-# default target is 'home', other possibility is 'work'.
-target=home
+# read the main configuration file
+if [ -r "$configfile" ] ; then
+    . "$configfile"
+else
+    echo "config file $configfile not found." >&2
+    exit 1
+fi
 
-# exclude files are here
-excludedir=/usr/local/share/backup
 
 TEMP=`getopt -o h:l: -- "$@"`
 
@@ -24,72 +26,66 @@ eval set -- "$TEMP"
 while true; do
     case "$1" in
 	-h) host="$2"; shift 2 ;;
-	-l) target="$2"; shift 2 ;;
+	-l) location="$2"; shift 2 ;;
 	--) shift; break ;;
 	*) echo "Internal error" ; exit 1 ;;
     esac
 done
 
-excludefile=$excludedir/$host-excludes
+excludefile="$excludedir/$host-excludes"
 
-# kludge to manoeuvrer the host into the rsync command line
-if [ "$host" = camilla ]; then
-    rhost=
-else
-    rhost="$host:"
+if [ ! -r "$excludefile" ]; then
+    echo "Exclude file $excludefile not found" >&2
+    exit 1
 fi
 
+if [ -z "$host" ]; then
+    echo "Host not set. Set host in $configfile or use -h" >&2
+    exit 1
+fi
 
-case $target in
-    home)
-	targetvolume=/media/medion_big/backup
-	;;
-    work)
-	targetvolume=/external/backup
-	;;
-    *)
-	echo "Unknown target volume '$target'"
-	exit 1
-	;;
-esac
+if [ -z "$location" ]; then
+    echo "Location not set. Set location in $configfile or use -l" >&2
+    exit 1
+fi
+
+eval rhost="\$${host}_rhost"
+
+if [ -z "$rhost" ]; then
+    echo "Variable ${host}_rhost is missing or empty in $configfile" >&2
+    exit 1
+fi
+
+eval targetvolume="\$${location}_volume"
+
+if [ -z "$targetvolume" ]; then
+    echo "Variable ${location}_volume is missing or empty in $configfile" >&2
+    exit 1
+fi
+
 
 backupdir=$targetvolume/$host/current
 
 
 rsyncflags="-rlt -P -v --delete --exclude-from=$excludefile"
-cd $backupdir || { echo "target volume $targetvolume not mounted" ; exit 1 ; }
+cd $backupdir || { echo "target directory $targetvolume not present or mounted" ; exit 1 ; }
 
-rsync $rsyncflags $rhost/ $backupdir/
+rsync $rsyncflags $rhost $backupdir/
 
 if [ $? -ne 0 ]; then
-    echo "rsync failure? Exiting"
+    echo "rsync failure? Exiting (Backup not complete!)"
     exit 1
 fi
 
-# the shared system between mac and linux
-#targetdir=$targetvolume/untitled/dennis/
-#sourcedir=/shared/dennis/
-
-#( cd $sourcedir || { echo 'volume untitled not mounted' ; exit 1 ; } )
-#rsync $rsyncflags $sourcedir $targetdir
-
 # time-machine style backup
 today=`date '+%Y-%m-%d'`
+
+# This is necessary if the backup is re-done the same day. If this scares you,
+# don't worry as the 'current' directory should still have the actual files.
 if [ -d $targetvolume/$host/$today ]; then
     rm -rf $targetvolume/$host/$today
 fi
 
+# This makes a hardlink copy of every file to the dated directory
 cp -al $targetvolume/$host/current/ $targetvolume/$host/$today/
 
-# legacy nonsense.
-
-if [ "$host" = camilla ]; then
-    volume=mac_camilla
-    backupdir=$targetvolume/${volume}
-    srcdir=/media/InternalHD/Users/dennis
-    excludefile=/usr/local/share/backup/maccamilla-excludes
-    rsyncflags="-rlt -P -v --delete --exclude-from=$excludefile"
-    cd $srcdir || { echo 'volume InternalHD not mounted' ; exit 1 ; }
-
-    rsync $rsyncflags $srcdir/ $backupdir/
-fi
