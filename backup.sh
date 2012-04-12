@@ -64,28 +64,32 @@ if [ -z "$targetvolume" ]; then
 fi
 
 
-backupdir=$targetvolume/$host/current
+# time-machine style backup
+today=`date '+%Y-%m-%d'`
 
+backupdir=$targetvolume/$host/$today
+currentdir=$targetvolume/$host/current
 
 rsyncflags="-rlt -P -v --delete --exclude-from=$excludefile"
-cd $backupdir || { echo "target directory $targetvolume not present or mounted" ; exit 1 ; }
+[ -e $currentdir ] || { echo "target directory $targetvolume not present or mounted" ; exit 1 ; }
 
-rsync $rsyncflags $rhost $backupdir/
+rsync $rsyncflags $rhost --link-dest=$currentdir $backupdir
 
 if [ $? -ne 0 ]; then
     echo "rsync failure? Exiting (Backup not complete!)"
     exit 1
 fi
 
-# time-machine style backup
-today=`date '+%Y-%m-%d'`
+# If the backup was successful it is now time to move the 'current' symlink
 
-# This is necessary if the backup is re-done the same day. If this scares you,
-# don't worry as the 'current' directory should still have the actual files.
-if [ -d $targetvolume/$host/$today ]; then
-    rm -rf $targetvolume/$host/$today
+if [ -h $currentdir ]; then
+    rm $currentdir
+    ln -s $today $currentdir
+else
+    echo "Warning: current is not a symlink."
+    tmpdir=$targetvolume/$host/tmp
+    mv $backupdir $tmpdir
+    mv $currentdir $backupdir
+    mv $tmpdir $currentdir
 fi
-
-# This makes a hardlink copy of every file to the dated directory
-cp -al $targetvolume/$host/current/ $targetvolume/$host/$today/
 
