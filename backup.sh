@@ -6,7 +6,7 @@ PATH=/bin:/usr/bin:/sbin:/usr/sbin
 # -h <host> backup the remote host
 # -l <location> backup to volume, either 'home' or 'work'
 
-configfile=/etc/simplebackup.conf
+configfile=/etc/backup/simplebackup.conf
 
 # read the main configuration file
 if [ -r "$configfile" ] ; then
