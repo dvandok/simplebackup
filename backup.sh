@@ -71,7 +71,7 @@ backupdir=$targetvolume/$host/$today
 currentdir=$targetvolume/$host/current
 
 rsyncflags="-rlt -P -v --delete --exclude-from=$excludefile"
-[ -e $currentdir ] || { echo "target directory $targetvolume not present or mounted" ; exit 1 ; }
+[ -e $currentdir ] || { echo "target directory $currentdir not present or mounted" ; exit 1 ; }
 
 rsync $rsyncflags $rhost --link-dest=$currentdir $backupdir
 
